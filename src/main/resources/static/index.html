@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Websockets</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="main">
+        <h1>Serverzeit:</h1>
+    <p>
+        <span id="server-time"></span>
+    </p>
+    <p>
+        <span id="socket-error"></span>
+    </p>
+    <div class="flex">
+        <div>
+            <form action="." id="form">
+                <label for="text">Nachricht</label>
+                <input type="text" id="text">
+                <button type="submit">Absenden</button>
+            </form>
+            <ul id="message-list"></ul>
+        </div>
+    </div>
+
+    </div>
+
+<script>
+	const server = 'ws://localhost:8080/time';
+    //const messageList = document.getElementById("message-list")
+    const ws = new WebSocket(server);
+    // receive msg with server time and put it to the html
+    ws.onmessage = function(data) {
+        let el = document.getElementById('server-time');
+        el.innerText = data.data;
+    }
+    // Listen for possible errors (optional)
+    ws.addEventListener('error', (event) => {
+        let el = document.getElementById('socket-error');
+        el.innerText = 'WebSocket error @ server: '+server+' !';
+        })
+</script>
+<script>
+    const username = prompt("Enter your username:");
+    const socket = new WebSocket("ws://localhost:8080/chat");
+    const messageList = document.getElementById("message-list")
+
+    document.getElementById("form").addEventListener("submit", (event) => {
+        // Construct a msg object containing the data the server needs
+        // to process the message from the chat client.
+        const msg = {
+            from: username,
+            text: document.getElementById("text").value,
+        };
+        // Send the msg object as a JSON-formatted string.
+        socket.send(JSON.stringify(msg));
+
+        document.getElementById("text").value = "";
+        event.preventDefault()
+        event.stopPropagation()
+    })
+
+    socket.onmessage = function(event) {
+        let message = JSON.parse(event.data);
+        displayChatMessage(message);
+    };
+
+    // Display incoming chat message in the UI
+    function displayChatMessage(message) {
+        console.log("Message:", message);
+        const li = document.createElement("li")
+        li.innerHTML=message.from + ": " + message.text
+        messageList.appendChild(li)
+    }
+</script>
+</body>
+</html>

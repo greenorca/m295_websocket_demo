@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Websockets</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="main">
+        <h1>Serverzeit:</h1>
+    <p>
+        <span id="server-time"></span>
+    </p>
+    <p>
+        <span id="socket-error"></span>
+    </p>
+    <div class="flex">
+        <div>
+            <form action="." id="form">
+                <label for="text">Nachricht</label>
+                <input type="text" id="text">
+                <button type="submit">Absenden</button>
+            </form>
+            <ul id="message-list"></ul>
+        </div>
+        <div>
+            <ul id="user-list"></ul>
+        </div>
+    </div>
+
+    </div>
+
+<script>
+	const server = 'ws://localhost:8080/time';
+    //const messageList = document.getElementById("message-list")
+    const ws = new WebSocket(server);
+    // receive msg with server time and put it to the html
+    ws.onmessage = function(data) {
+        let el = document.getElementById('server-time');
+        el.innerText = data.data;
+    }
+    // Listen for possible errors (optional)
+    ws.addEventListener('error', (event) => {
+        let el = document.getElementById('socket-error');
+        el.innerText = 'WebSocket error @ server: '+server+' !';
+        })
+</script>
+<script>
+    const socket = new WebSocket("ws://localhost:8080/chat");
+    const userList = document.getElementById("user-list")
+    const messageList = document.getElementById("message-list")
+    var username = ""
+    var selectedUser = ""
+
+    document.getElementById("form").addEventListener("submit", (event) => {
+        // Construct a msg object containing the data the server needs
+        // to process the message from the chat client.
+        const msg = {
+            type: "message",
+            text: document.getElementById("text").value,
+            id: username,
+            date: Date.now()
+        };
+        // Send the msg object as a JSON-formatted string.
+        socket.send(JSON.stringify(msg));
+        // Blank the text input element, ready to receive the next line of text from user.
+        document.getElementById("text").value = "";
+        event.preventDefault()
+        event.stopPropagation()
+    })
+
+    socket.onmessage = function(event) {
+        let message = JSON.parse(event.data);
+
+        if (message.type === "user-list") {
+            updateUserList(message.users);
+        } else {
+            displayChatMessage(message);
+        }
+    };
+
+    // Register the user when the WebSocket connection is established
+    socket.onopen = function() {
+        username = prompt("Enter your username:");
+        socket.send(JSON.stringify({type: "register", username: username}));
+    };
+
+    // Send chat message
+    function sendMessage(to, message) {
+        socket.send(JSON.stringify({type: "chat", to: to, message: message}));
+    }
+
+    // Update the user list in the UI
+    function updateUserList(users) {
+        // Logic to update the UI with the list of connected users
+        console.log("Online users:", users);
+        users.map(user => {
+            const li = document.createElement("<li>")
+            li.innerHTML = user
+            userList.appendChild(li)
+        })
+    }
+
+    // Display incoming chat message in the UI
+    function displayChatMessage(message) {
+        // Logic to display the chat message in the UI
+        console.log("Message:", message);
+        if (message.userlist){
+            return
+        }
+        const li = document.createElement("li")
+        const user = document.createElement("span")
+        user.classList.add("user")
+        user.innerHTML=message.user
+        const messageSpan = document.createElement("span")
+        messageSpan.classList.add("message")
+        messageSpan.innerHTML=message.text
+        li.appendChild(user)
+        li.appendChild(messageSpan)
+        messageList.appendChild(li)
+    }
+</script>
+</body>
+</html>
