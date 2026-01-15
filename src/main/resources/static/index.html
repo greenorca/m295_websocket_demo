@@ -7,20 +7,27 @@
 </head>
 <body>
     <div id="main">
-        <h1>Serverzeit:</h1>
+        <h4>Serverzeit:</h4>
     <p>
         <span id="server-time"></span>
     </p>
     <p>
         <span id="socket-error"></span>
     </p>
-    <div class="flex">
-        <div>
-            <form action="." id="form">
+    <form action="." id="form">
                 <label for="text">Nachricht</label>
                 <input type="text" id="text">
                 <button type="submit">Absenden</button>
             </form>
+    <div class="flex">
+        <div>
+            <h4>Aktive Benutzer</h4>
+            <ul id="userlist">
+
+            </ul>
+        </div>
+        <div>
+            <h4>Chat</h4>
             <ul id="message-list"></ul>
         </div>
     </div>
@@ -45,6 +52,11 @@
 <script>
     const username = prompt("Enter your username:");
     const socket = new WebSocket("ws://localhost:8080/chat");
+
+    socket.onopen = function() {
+        socket.send(JSON.stringify({type: "register", username: username}));
+    };
+
     const messageList = document.getElementById("message-list")
 
     document.getElementById("form").addEventListener("submit", (event) => {
@@ -64,7 +76,12 @@
 
     socket.onmessage = function(event) {
         let message = JSON.parse(event.data);
-        displayChatMessage(message);
+        if (message.type==="userlist"){
+            populateUsersList(message.users)
+        }
+        else {
+            displayChatMessage(message);
+        }
     };
 
     // Display incoming chat message in the UI
@@ -74,6 +91,17 @@
         li.innerHTML=message.from + ": " + message.text
         messageList.appendChild(li)
     }
+
+    function populateUsersList(users){
+        const userlist = document.getElementById("userlist")
+        userlist.innerHTML = "";
+        users.forEach(user => {
+            const li = document.createElement("li")
+            li.innerHTML = user
+            userlist.appendChild(li)
+        });
+    } 
+
 </script>
 </body>
 </html>
