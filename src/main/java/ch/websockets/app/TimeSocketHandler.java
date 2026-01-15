@@ -1,10 +1,14 @@
 package ch.websockets.app;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,36 +35,23 @@ public class TimeSocketHandler extends TextWebSocketHandler {
     }
   }
 
+  private ScheduledExecutorService scheduler;
+
   public TimeSocketHandler() {
-    new Thread(() -> {
-      while(true) {
-        try {
-          String time = Calendar.getInstance().getTime().toString();
-          List<WebSocketSession> brokeSessions = new ArrayList<>();
-          for(WebSocketSession session : sessions) {
-            if (!sendMessage(session, time)) {
-              brokeSessions.add(session);
-            }
-          }
-          sessions.removeAll(brokeSessions);
-          Thread.sleep(1000);
-        } catch (Exception ex) {
-          ex.printStackTrace();
-        }
-      }
-    }).start();
+    this.scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    scheduler.scheduleAtFixedRate(() -> {
+        String time = Instant.now().toString().substring(0, 19).replace("T", " ");
+        sessions.removeIf(session ->
+            !session.isOpen() || !sendMessage(session, time)
+        );
+    }, 0, 1, TimeUnit.SECONDS);
+
   }
 
   @Override
   public void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message){
-    try {
-      StringBuilder sb = new StringBuilder();
-      sb.append("Received message: ");
-      sb.append(message.getPayload());
-      logger.info(sb.toString());
-    } catch (Exception ex) {
-      ex.printStackTrace();
-    }
+    logger.info("Received message: {}", message.getPayload());
   }
 
   @Override
